@@ -17,15 +17,15 @@ resource "alicloud_key_pair" "publickey" {
 resource "alicloud_vpc" "vpc" {
   count      = var.enable_alibaba ? 1 : 0
   cidr_block = var.ali_vpc_cidr
-  name       = var.ali_vpc_name
+  vpc_name       = var.ali_vpc_name
 }
 
 resource "alicloud_vswitch" "vswitches" {
   count             = var.enable_alibaba ? length(var.ali_vswitch_cidrs) : 0
   vpc_id            = alicloud_vpc.vpc.0.id
   cidr_block        = var.ali_vswitch_cidrs[count.index]
-  availability_zone = data.alicloud_zones.main.0.zones[count.index].id
-  name              = "${var.ack_name}-${random_id.cluster_name.0.hex}-vswitch-${count.index}"
+  zone_id = data.alicloud_zones.main.0.zones[count.index].id
+  vswitch_name              = "${var.ack_name}-${random_id.cluster_name.0.hex}-vswitch-${count.index}"
 
   depends_on = [alicloud_vpc.vpc]
 }
@@ -81,8 +81,8 @@ resource "alicloud_snat_entry" "default" {
 
 resource "alicloud_ram_policy" "k8s-AliyunOSSAccess" {
   count       = var.enable_alibaba ? 1 : 0
-  name        = "k8s-AliyunOSSAccess"
-  document    = <<EOF
+  policy_name        = "k8s-AliyunOSSAccess"
+  policy_document    = <<EOF
 {
   "Statement": [
     {
@@ -108,8 +108,8 @@ EOF
 
 resource "alicloud_ram_policy" "k8s-AliyunCMSAccess" {
   count       = var.enable_alibaba ? 1 : 0
-  name        = "k8s-AliyunCMSAccess"
-  document    = <<EOF
+  policy_name        = "k8s-AliyunCMSAccess"
+  policy_document    = <<EOF
 {
   "Statement": [
     {
@@ -132,8 +132,8 @@ EOF
 
 resource "alicloud_ram_policy" "k8s-AliyunRAMpassrole" {
   count       = var.enable_alibaba ? 1 : 0
-  name        = "k8s-AliyunRAMpassrole"
-  document    = <<EOF
+  policy_name        = "k8s-AliyunRAMpassrole"
+  policy_document    = <<EOF
 {
   "Statement": [
       {
@@ -155,8 +155,8 @@ EOF
 
 resource "alicloud_ram_policy" "k8s-AliyunCRaccess" {
   count       = var.enable_alibaba ? 1 : 0
-  name        = "k8s-AliyunCRaccess"
-  document    = <<EOF
+  policy_name        = "k8s-AliyunCRaccess"
+  policy_document    = <<EOF
 {
   "Statement": [
       {
@@ -178,8 +178,8 @@ EOF
 
 resource "alicloud_ram_policy" "k8s-AliyunOOSaccess" {
   count       = var.enable_alibaba ? 1 : 0
-  name        = "k8s-AliyunOOSaccess"
-  document    = <<EOF
+  policy_name        = "k8s-AliyunOOSaccess"
+  policy_document    = <<EOF
 {
   "Statement": [
       {
@@ -851,6 +851,7 @@ resource "alicloud_cs_managed_kubernetes" "ack" {
   name                  = "${var.ack_name}-${random_id.cluster_name[count.index].hex}"
   vswitch_ids           = alicloud_vswitch.vswitches.*.id
   new_nat_gateway       = false
+  worker_vswitch_ids    = alicloud_vswitch.vswitches.*.id
   worker_instance_types = var.ack_node_types.*
   worker_number         = var.ack_node_count
   key_name              = alicloud_key_pair.publickey[count.index].key_name
@@ -861,7 +862,7 @@ resource "alicloud_cs_managed_kubernetes" "ack" {
   cluster_network_type  = var.ack_k8s_cni
   kube_config           = "./kubeconfig_ack"
 
-  force_update = true
+  # force_update = true
 
   depends_on = [alicloud_snat_entry.default]
 }
